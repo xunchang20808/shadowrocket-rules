@@ -2,30 +2,35 @@ name: Auto Update Rules
 
 on:
   schedule:
-    - cron: '0 2 * * 1'  # 每周一上午 10 点（UTC+8）
+    - cron: '0 2 * * 1'  # 每周一凌晨2点 UTC（北京时间上午10点）
   workflow_dispatch:
 
 jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出代码仓库
+      - name: 检出代码
         uses: actions/checkout@v3
+        with:
+          persist-credentials: true  # 允许后续 push 使用 GITHUB_TOKEN
 
-      - name: 设置 Git 信息
+      - name: 设置 Git 用户信息
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: 下载最新广告规则和 Apple 规则
+      - name: 下载第三方规则
         run: |
           mkdir -p RULE-SET
           curl -L https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Advertising.list -o RULE-SET/Advertising.list
           curl -L https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Apple.list -o RULE-SET/Apple.list
 
-      - name: 提交更新
+      - name: 提交并推送变更
         run: |
           git add RULE-SET/*
-          git commit -m "🆙 自动更新广告与 Apple 分流规则 - 2025-06-26" || echo "No changes"
-          git push
-
+          if ! git diff --cached --quiet; then
+            git commit -m "🆙 自动更新规则"
+            git push
+          else
+            echo "无变更无需更新"
+          fi
