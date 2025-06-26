@@ -2,7 +2,7 @@ name: Auto Update Rules
 
 on:
   schedule:
-    - cron: '0 2 * * 1'  # 每周一凌晨2点 UTC（北京时间上午10点）
+    - cron: '0 2 * * 1'  # 每周一 UTC 凌晨 2 点（北京时间上午 10 点）
   workflow_dispatch:
 
 jobs:
@@ -12,25 +12,28 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v3
         with:
-          persist-credentials: true  # 允许后续 push 使用 GITHUB_TOKEN
+          persist-credentials: false  # 禁用默认 token，改用自定义 PAT
 
-      - name: 设置 Git 用户信息
+      - name: 设置 Git 身份信息
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "Auto Updater"
+          git config user.email "action@github.com"
 
-      - name: 下载第三方规则
+      - name: 下载规则文件
         run: |
           mkdir -p RULE-SET
           curl -L https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Advertising.list -o RULE-SET/Advertising.list
           curl -L https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Apple.list -o RULE-SET/Apple.list
 
       - name: 提交并推送变更
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
+          git remote set-url origin https://x-access-token:${PAT_TOKEN}@github.com/xunchang20808/shadowrocket-rules.git
           git add RULE-SET/*
           if ! git diff --cached --quiet; then
             git commit -m "🆙 自动更新规则"
-            git push
+            git push origin main
           else
             echo "无变更无需更新"
           fi
